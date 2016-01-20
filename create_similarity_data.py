@@ -3,6 +3,13 @@
 Created on Mon Jan 18 11:26:11 2016
 
 @author: hedi
+
+We create a file containing representation of images and texts. This file 
+uses the img_caffe_features.dat file, where each line is as follows :
+
+<path_to_image> <embedding>
+
+(the path_to_image is incorrect, one must only keep the picture name)
 """
 
 import numpy as np
@@ -23,7 +30,7 @@ def text_embedding(product):
     return np.array(vec)
     
 if __name__ == '__main__':
-    csv_file = open("img_caffe_features.dat")
+    csv_file = open("t_img_caffe_features.dat")
     products = {}
     for line in csv_file:
         L = line.split(' ')
@@ -54,3 +61,5 @@ if __name__ == '__main__':
             vecs = text_embedding(product)
             products[idx]["text_emb"] = vecs
             products[idx]['product'] = json.dumps(raw_product)    
+    
+    np.save(open('t_similarity_data','w'), products)
