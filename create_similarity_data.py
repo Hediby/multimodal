@@ -17,6 +17,8 @@ import sys
 import json
 from goldberg.scripts.infer import Embeddings
 from tokenizer import word_tokenize
+from os import walk
+from os.path import join
 fwrite = sys.stdout.write
 def text_embedding(product):
     vec = []
@@ -30,28 +32,30 @@ def text_embedding(product):
     return np.array(vec)
     
 if __name__ == '__main__':
-    csv_file = open("t_img_caffe_features.dat")
+    which_set = 't'
+    csv_file = open(which_set+'_img_caffe_features.dat')
     products = {}
+    fwrite('Going through image features dataset... \n')
     for line in csv_file:
-        L = line.split(' ')
+        L = line.split(';')
         idx = L[0].split('/')[-1].split('.')[0]
-        image_emb = np.array([float(l) for l in L[1:-1]])
-        image_path  = 'images/img/training/1/%s.jpg' % idx
-        products[idx] = {'image_emb':image_emb, 'image_path':image_path}
+        image_emb = np.array([float(l) for l in L[1].strip().split(' ')])
+        products[idx] = {'image_emb':image_emb}
+    fwrite('Done\n')
     csv_file.close()
     csv_file = open('training.csv', 'r')
     all_keys = csv_file.readline().split(';')
     product_keys = ['Description', 'Libelle','Marque']
-    fwrite('Iterating over products file ...\n')
     sys.stdout.flush()
     model = Embeddings('../product2vec2/embeddings/all/vecs.npy')
     dimension = model._vecs.shape[1]
     n_max = len(products)
     j = 0
+    fwrite('Going through products to extract text embeddings... \n')
     for line in csv_file:
         j += 1
         if not j % 100000:
-            fwrite('%d\n' % j)
+            fwrite('\t%d\n' % j)
             sys.stdout.flush()
         L = line.lower().split(';')
         idx = L[0]
@@ -61,5 +65,26 @@ if __name__ == '__main__':
             vecs = text_embedding(product)
             products[idx]["text_emb"] = vecs
             products[idx]['product'] = json.dumps(raw_product)    
+        
+        
+    fwrite('Done\n')
+    images_path = 'images/img/training'
+    break_all = False
+    K = 0
+    fwrite('Retrieving image paths... ')
+    for (dirpath, dirnames, filenames) in walk(images_path):
+        for f in filenames:
+            idx = f.split('.')[0]
+            if idx in products:
+                products[idx]['image_path'] = join(dirpath,f)
+                K += 1
+            if K == len(products):
+                break_all = True
+            if break_all:
+                break
+        if break_all:
+            break
+    fwrite('Done\n')
     
-    np.save(open('t_similarity_data','w'), products)
+    
+    np.save(open(which_set+'_similarity_data','w'), products)
